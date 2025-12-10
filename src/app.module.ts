@@ -5,7 +5,10 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { User } from './users/entities/user.entity';
 import { ApiKey } from './users/entities/api-key.entity';
+import { Wallet } from './wallet/entities/wallet.entity';
+import { Transaction } from './wallet/entities/transaction.entity';
 import { ApiKeysModule } from './api-keys/api-keys.module';
+import { WalletModule } from './wallet/wallet.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -26,7 +29,7 @@ import { AppController } from './app.controller';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
-        entities: [User, ApiKey],
+        entities: [User, ApiKey, Wallet, Transaction],
         synchronize: true,
       }),
     }),
@@ -34,6 +37,7 @@ import { AppController } from './app.controller';
     UsersModule,
     AuthModule,
     ApiKeysModule,
+    WalletModule,
   ],
   controllers: [AppController],
   providers: [],

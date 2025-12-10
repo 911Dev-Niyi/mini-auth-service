@@ -1,37 +1,54 @@
 import {
   Controller,
   Post,
-  Get,
+  Body,
+  Req,
   Delete,
   Param,
+  Get,
   UseGuards,
-  Request,
+  HttpCode,
 } from '@nestjs/common';
 import { ApiKeysService } from './api-keys.service';
-import { AuthGuard } from '@nestjs/passport';
-import { User } from '../users/entities/user.entity';
+import { CreateApiKeyDto } from './dto/create-api-key.dto';
+import { RolloverApiKeyDto } from './dto/rollover-api-key.dto';
+import type { RequestWithAuthenticatedUser } from '../auth/interfaces/request-with-user.interface';
+import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 
-interface RequestWithUser {
-  user: User;
-}
-
-@UseGuards(AuthGuard('jwt'))
-@Controller('keys/create')
+@UseGuards(CombinedAuthGuard)
+@Controller('keys')
 export class ApiKeysController {
   constructor(private readonly apiKeysService: ApiKeysService) {}
 
-  @Post()
-  create(@Request() req: RequestWithUser) {
-    return this.apiKeysService.create(req.user);
+  // POST /keys/create
+  @Post('create')
+  create(
+    @Body() createApiKeyDto: CreateApiKeyDto,
+    @Req() req: RequestWithAuthenticatedUser,
+  ) {
+    return this.apiKeysService.create(createApiKeyDto, req.user);
   }
 
+  // POST /keys/rollover
+  @Post('rollover')
+  async rollover(
+    @Body() rolloverApiKeyDto: RolloverApiKeyDto,
+    @Req() req: RequestWithAuthenticatedUser,
+  ) {
+    return this.apiKeysService.rollover(rolloverApiKeyDto, req.user);
+  }
+
+  // GET /keys
   @Get()
-  findAll(@Request() req: RequestWithUser) {
+  findAll(@Req() req: RequestWithAuthenticatedUser) {
     return this.apiKeysService.findAll(req.user);
   }
 
+  // DELETE /keys/:id
   @Delete(':id')
-  remove(@Param('id') id: string, @Request() req: RequestWithUser) {
+  @HttpCode(200)
+  remove(@Param('id') id: string, @Req() req: RequestWithAuthenticatedUser) {
+    // Note: The service uses 'remove' to set is_active=false, which is better than hard delete.
     return this.apiKeysService.remove(id, req.user);
   }
 }

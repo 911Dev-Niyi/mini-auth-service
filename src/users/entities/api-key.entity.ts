@@ -4,6 +4,7 @@ import {
   Column,
   ManyToOne,
   CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 
@@ -11,6 +12,9 @@ import { User } from './user.entity';
 export class ApiKey {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column()
+  name: string; //User-friendly name for the key
 
   // Store the HASH, not the real key
   @Column()
@@ -20,6 +24,12 @@ export class ApiKey {
   @Column()
   prefix: string;
 
+  @Column('simple-array', { nullable: true })
+  permissions: string[];
+
+  @Column({ type: 'timestamp', nullable: true })
+  expires_at: Date;
+
   @Column({ default: true })
   is_active: boolean;
 
@@ -28,4 +38,7 @@ export class ApiKey {
 
   @CreateDateColumn()
   created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }

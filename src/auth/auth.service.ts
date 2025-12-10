@@ -6,9 +6,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import { WalletService } from '../wallet/wallet.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { AuthDto } from './dto/auth.dto'; // Import the DTO
+import { AuthDto } from './dto/auth.dto';
+import { JwtPayload } from './interfaces/request-with-user.interface';
 
 @Injectable()
 export class AuthService {
@@ -16,41 +18,45 @@ export class AuthService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private jwtService: JwtService,
+    private readonly walletService: WalletService,
   ) {}
-
+  generateToken(payload: JwtPayload) {
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
+  }
   async signup(dto: AuthDto) {
-    const { email, password } = dto;
+    const { email, password } = dto; // Check if email exists
 
-    // Check if email exists
     const existing = await this.usersRepository.findOne({ where: { email } });
     if (existing) {
       throw new ConflictException('User already exists');
-    }
+    } // Hash password
 
-    // Hash password
     const salt = await bcrypt.genSalt();
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, salt); // Save User
 
-    // Save User
     const user = this.usersRepository.create({
       email,
       password_hash: hashedPassword,
     });
     await this.usersRepository.save(user);
 
+    await this.walletService.createWallet(user);
+
     return { message: 'User created successfully', id: user.id };
   }
 
   async login(dto: AuthDto) {
-    const { email, password } = dto;
+    const { email, password } = dto; // Find user
 
-    // Find user
     const user = await this.usersRepository.findOne({
       where: { email },
       select: ['id', 'email', 'password_hash'],
     });
 
-    if (!user) {
+    // Check if user exists OR if user exists but has no password hash (SSO user)
+    if (!user || !user.password_hash) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -60,10 +66,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Generate Token
-    const payload = { sub: user.id, email: user.email };
-    return {
-      access_token: this.jwtService.sign(payload),
+    const payload: JwtPayload = {
+      id: user.id,
+      email: user.email,
     };
+
+    return this.generateToken(payload); // Pass the cleaned payload
   }
 }
