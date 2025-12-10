@@ -30,7 +30,7 @@ import { AppController } from './app.controller';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         entities: [User, ApiKey, Wallet, Transaction],
-        synchronize: true,
+        synchronize: process.env.NODE_ENV !== 'production' ? true : false,
       }),
     }),
 

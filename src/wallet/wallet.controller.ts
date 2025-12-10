@@ -20,9 +20,19 @@ import { PaystackService } from './paystack.service';
 import { DepositDto } from './dto/deposit.dto';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { TransferDto } from './dto/transfer.dto';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiSecurity,
+  ApiResponse,
+} from '@nestjs/swagger';
 
 @UseGuards(CombinedAuthGuard)
 @Controller('wallet')
+@ApiTags('Wallet Operations')
+@ApiBearerAuth('JWT')
+@ApiSecurity('API Key')
 export class WalletController {
   constructor(
     private readonly walletService: WalletService,
@@ -32,11 +42,12 @@ export class WalletController {
   // GET /wallet/balance
   @Get('balance')
   @(Permissions(AllowedPermission.READ)())
+  @ApiResponse({ status: 200, description: 'Balance retrieved successfully' })
   async getBalance(@ReqUser() user: User) {
     // Modify service call or controller logic to get the full wallet object
     const wallet = await this.walletService.findWalletByUserId(user.id);
     return {
-      walletNumber: wallet.walletNumber, // <--- ADDED THIS FIELD
+      walletNumber: wallet.walletNumber,
       balance: wallet.balance,
     };
   }
@@ -45,6 +56,15 @@ export class WalletController {
   @Post('transfer')
   @HttpCode(200)
   @(Permissions(AllowedPermission.TRANSFER)())
+  @ApiOperation({
+    summary: 'Atomically transfer funds between two user wallets',
+  })
+  @ApiResponse({ status: 200, description: 'Transfer completed successfully.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Insufficient balance or invalid amount.',
+  })
+  @ApiResponse({ status: 404, description: 'Recipient wallet not found.' })
   async transferFunds(@Body() dto: TransferDto, @ReqUser() user: User) {
     await this.walletService.transferFunds(
       user.id,
@@ -61,14 +81,21 @@ export class WalletController {
   // POST /wallet/deposit
   @Post('deposit')
   @(Permissions(AllowedPermission.DEPOSIT)())
+  @ApiOperation({
+    summary: 'Initiate a Paystack deposit and return the authorization URL',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Deposit initiated, returns Paystack URL.',
+  })
   async initializeDeposit(@Body() dto: DepositDto, @ReqUser() user: User) {
     // Ensure user has a wallet (good practice)
     await this.walletService.findWalletByUserId(user.id); // Generate a unique reference ID for Paystack and our database
 
     const reference = `DEP-${user.id}-${Date.now()}`; // Call Paystack API
-
+    const paymentEmail = user.email;
     const paystackData = await this.paystackService.initializeTransaction(
-      user.email,
+      paymentEmail,
       dto.amount,
       reference,
     );
@@ -95,12 +122,23 @@ export class WalletController {
   // GET /wallet/transactions
   @Get('transactions')
   @(Permissions(AllowedPermission.READ)())
+  @ApiOperation({
+    summary: 'Get transaction history for the authenticated user',
+  })
+  @ApiResponse({ status: 200, description: 'Transaction history retrieved.' })
   getTransactionHistory(@ReqUser() user: User) {
     return this.walletService.getTransactionHistory(user.id);
   }
 
   @Get('deposit/callback')
   @Public()
+  @ApiOperation({
+    summary: 'Paystack browser redirect handler (Public Endpoint)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Verifies transaction status and provides user feedback.',
+  })
   async handlePaystackCallback(@Query('reference') reference: string) {
     if (!reference) {
       return { status: 'failed', message: 'Payment reference missing.' };
