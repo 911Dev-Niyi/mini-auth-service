@@ -32,7 +32,16 @@ export class ApiKeysController {
   @ApiOperation({
     summary: 'Generate a new API key with specific permissions and expiry',
   })
-  @ApiResponse({ status: 201, description: 'API Key created and returned.' })
+  @ApiResponse({
+    status: 201,
+    description: 'API Key created and returned.',
+    schema: {
+      example: {
+        apiKey: 'sk_live_verylongkeyexample',
+        expires_at: '2026-01T12:00:00Z',
+      },
+    },
+  })
   @ApiResponse({
     status: 400,
     description: 'Invalid expiry format or max key limit reached (limit 5).',
@@ -52,6 +61,12 @@ export class ApiKeysController {
   @ApiResponse({
     status: 201,
     description: 'New API Key generated successfully.',
+    schema: {
+      example: {
+        new_api_key: 'sk_live_newkeyexample',
+        new_expires_at: '2026-07-01T12:00:00Z',
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -68,7 +83,20 @@ export class ApiKeysController {
   @ApiOperation({
     summary: 'Get a list of all active and inactive API keys for the user',
   })
-  @ApiResponse({ status: 200, description: 'List of API keys retrieved.' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of API keys retrieved.',
+    schema: {
+      example: [
+        {
+          id: 'uuid',
+          name: 'service-key',
+          is_active: true,
+          permissions: ['read', 'deposit'],
+        },
+      ],
+    },
+  })
   findAll(@Req() req: RequestWithAuthenticatedUser) {
     return this.apiKeysService.findAll(req.user);
   } // DELETE /keys/:id

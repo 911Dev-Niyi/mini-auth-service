@@ -13,6 +13,12 @@ import {
 import { PaystackService } from './paystack.service';
 import { WalletService } from './wallet.service';
 import type { Request } from 'express';
+import {
+  ApiExcludeController,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 // Interfaces for type safety
 interface WebhookPayload {
@@ -31,6 +37,8 @@ interface WebhookPayload {
 // }
 
 @Controller('wallet/paystack')
+@ApiTags('Paystack Webhook')
+@ApiExcludeController(process.env.NODE_ENV === 'production') //Hide in production UI to prevent confusion
 export class PaystackWebhookController {
   constructor(
     private readonly paystackService: PaystackService,
@@ -38,6 +46,11 @@ export class PaystackWebhookController {
   ) {}
 
   @Post('webhook')
+  @ApiOperation({
+    summary: 'MANDATORY: Paystack Webhook Handler (Server-to-Server)',
+    description:
+      'This endpoint MUST be configured in the Paystack dashboard. It receives the success event, verifies the signature, and atomically credits the user’s wallet. **Do NOT call this manually** unless simulating a signed payload.',
+  })
   @HttpCode(HttpStatus.OK)
   async handleWebhook(
     @Headers('x-paystack-signature') signature: string,
@@ -90,6 +103,18 @@ export class PaystackWebhookController {
   }
 
   @Get('deposit/:reference/status')
+  @ApiOperation({
+    summary: 'Manual Deposit Status Check (Does NOT credit wallet)',
+    description:
+      'Queries Paystack to verify the final transaction status by reference. **This is a safe manual check and will NOT credit the wallet.**',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction details retrieved.',
+    schema: {
+      example: { reference: 'DEP-...', status: 'success', amount: 500.0 },
+    },
+  })
   async getDepositStatus(@Param('reference') reference: string) {
     const verificationData =
       await this.paystackService.verifyTransaction(reference);

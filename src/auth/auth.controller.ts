@@ -42,7 +42,11 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  @ApiOperation({ summary: 'Initiate Google SSO sign-in (Browser Redirect)' })
+  @ApiOperation({
+    summary: 'Initiate Google SSO sign-in (Browser Redirect)',
+    description:
+      'This endpoint must be openedin a browser. It redirects the user to Google for authentication',
+  })
   @ApiResponse({
     status: 302,
     description: 'Redirects to Google for authentication.',
@@ -55,10 +59,13 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   @ApiOperation({
     summary: 'Google SSO callback handler (Finalizes login and returns JWT)',
+    description:
+      'This is the destination of the Google redirect. Do NOT call this directly. Returns the users final JWT token.',
   })
   @ApiResponse({
     status: 200,
     description: 'Login successful, returns JWT token.',
+    schema: { example: { access_token: 'eyjhbgci0ioJIUzI1NiI...' } },
   })
   googleAuthRedirect(@Req() req: RequestWithAuthenticatedUser) {
     const user: User = req.user;

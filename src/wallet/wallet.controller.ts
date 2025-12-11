@@ -42,7 +42,17 @@ export class WalletController {
   // GET /wallet/balance
   @Get('balance')
   @(Permissions(AllowedPermission.READ)())
-  @ApiResponse({ status: 200, description: 'Balance retrieved successfully' })
+  @ApiOperation({ summary: 'Retrieve the current wallet balance and number' })
+  @ApiResponse({
+    status: 200,
+    description: 'Balance retrieved successfully',
+    schema: {
+      example: {
+        walletNumber: 'WL-123456c99863h8ffh9s-yheh-52',
+        balance: '500.00',
+      },
+    },
+  })
   async getBalance(@ReqUser() user: User) {
     // Modify service call or controller logic to get the full wallet object
     const wallet = await this.walletService.findWalletByUserId(user.id);
@@ -134,10 +144,19 @@ export class WalletController {
   @Public()
   @ApiOperation({
     summary: 'Paystack browser redirect handler (Public Endpoint)',
+    description:
+      'This URL is provided to paystack during initialization. After payment, the users browser is redirected here. It verifies the transaction status and displays a message,  but the wallet crediting is handled by the webhook',
   })
   @ApiResponse({
     status: 200,
     description: 'Verifies transaction status and provides user feedback.',
+    schema: {
+      example: {
+        status: 'pending',
+        message:
+          'Payment status received... Check your wallet balance shortly.',
+      },
+    },
   })
   async handlePaystackCallback(@Query('reference') reference: string) {
     if (!reference) {

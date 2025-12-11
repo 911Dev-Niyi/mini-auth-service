@@ -54,6 +54,6 @@ async function bootstrap() {
   // Enable Serialization (to hide @Exclude() fields like password_hash)
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
-  await app.listen(3000);
+  await app.listen(4000);
 }
 bootstrap();

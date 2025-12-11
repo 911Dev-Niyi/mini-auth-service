@@ -1,5 +1,3 @@
-// src/auth/dto/create-api-key.dto.ts
-
 import {
   IsString,
   IsNotEmpty,
@@ -7,6 +5,7 @@ import {
   IsArray,
   IsEnum,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export enum ApiKeyPermission {
   DEPOSIT = 'deposit',
@@ -16,15 +15,28 @@ export enum ApiKeyPermission {
 }
 
 export class CreateApiKeyDto {
+  @ApiProperty({
+    description: 'A descriptive name for the API key,',
+    example: 'Wallet-integration-service',
+  })
   @IsString()
   @IsNotEmpty()
   name: string;
 
+  @ApiProperty({
+    description: 'Permissions assigned to the key',
+    example: ['read_only', 'deposit'],
+  })
   @IsArray()
   @IsOptional()
   @IsEnum(ApiKeyPermission, { each: true })
   permissions?: ApiKeyPermission[];
 
+  @ApiProperty({
+    description:
+      'Expirt duration. Aceepts H (Hour), D (Day), M (Month), Y (Year).',
+    example: '1D',
+  })
   @IsString()
   @IsNotEmpty()
   @IsOptional()
